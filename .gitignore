@@ -30,3 +30,6 @@ coverage/
 # .playwright-mcp/
 .vercel
 .playwright-mcp/
+
+/src/generated/prisma
+.env*.local

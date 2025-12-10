@@ -1,4 +1,4 @@
-import { sql } from '@vercel/postgres';
+import { prisma } from './lib/prisma.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,10 +11,12 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const { rows } = await sql`SELECT * FROM tag_types ORDER BY label`;
+      const tags = await prisma.tagType.findMany({
+        orderBy: { label: 'asc' }
+      });
       const tagInfo = {};
-      rows.forEach(row => {
-        tagInfo[row.tag_key] = { label: row.label, type: row.type };
+      tags.forEach(tag => {
+        tagInfo[tag.tagKey] = { label: tag.label, type: tag.type };
       });
       return res.status(200).json(tagInfo);
     }
@@ -22,6 +24,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     console.error('Database error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 }

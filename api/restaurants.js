@@ -1,4 +1,4 @@
-import { sql } from '@vercel/postgres';
+import { prisma } from './lib/prisma.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,23 +14,25 @@ export default async function handler(req, res) {
       const { id } = req.query;
 
       if (id) {
-        const { rows } = await sql`
-          SELECT * FROM restaurants WHERE id = ${id}
-        `;
-        if (rows.length === 0) {
+        const restaurant = await prisma.restaurant.findUnique({
+          where: { id }
+        });
+        if (!restaurant) {
           return res.status(404).json({ error: 'Restaurant not found' });
         }
-        return res.status(200).json(transformRestaurant(rows[0]));
+        return res.status(200).json(transformRestaurant(restaurant));
       }
 
-      const { rows } = await sql`SELECT * FROM restaurants ORDER BY name`;
-      return res.status(200).json(rows.map(transformRestaurant));
+      const restaurants = await prisma.restaurant.findMany({
+        orderBy: { name: 'asc' }
+      });
+      return res.status(200).json(restaurants.map(transformRestaurant));
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     console.error('Database error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 }
 
